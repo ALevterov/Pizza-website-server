@@ -1,0 +1,4 @@
+{
+  "serverPort": 5000,
+  "dbUrl": "mongodb://ungrg2tfteeg46u87bd9:R9XRGk8Ofx9eYXLGODMk@n1-c2-mongodb-clevercloud-customers.services.clever-cloud.com:27017,n2-c2-mongodb-clevercloud-customers.services.clever-cloud.com:27017/byopvhvwtimbu4i?replicaSet=rs0"
+}
