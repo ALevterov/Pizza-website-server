@@ -61,8 +61,12 @@ class PizzaController {
           const pizza = await Pizza.find(
             { features: { $in: pizzaFeature } },
             null,
-            { skip: (page - 1) * limit, limit: limit }
-          ).sort({ [prop]: direction ? 'asc' : 'desc' })
+            {
+              skip: (page - 1) * limit,
+              limit: limit,
+              sort: { [prop]: direction ? 'asc' : 'desc' },
+            }
+          )
           console.log(pizza)
           return res.json(pizza)
         }
@@ -83,7 +87,8 @@ class PizzaController {
         const pizza = await Pizza.find({}, null, {
           skip: (page - 1) * limit,
           limit: limit,
-        }).sort({ [prop]: direction ? 'asc' : 'desc' })
+          sort: { [prop]: direction ? 'asc' : 'desc' },
+        })
 
         return res.json(pizza)
       }
