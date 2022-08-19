@@ -28,11 +28,6 @@ class PizzaController {
       let fileName = uuid.v4() + '.jpg'
       image.mv(path.resolve(__dirname, '..', 'static', fileName))
 
-      // selected = JSON.parse(selected)
-      // sizes = JSON.parse(sizes)
-      // dough = JSON.parse(dough)
-      // features = JSON.parse(features)
-
       const pizza = await Pizza.create({
         ...data,
         image: fileName,
@@ -44,7 +39,64 @@ class PizzaController {
     }
   }
 
-  async get(req, res) {}
+  async get(req, res, next) {
+    try {
+      let { page, limit, pizzaFeature, sortingProps } = req.body
+
+      page = +page
+      limit = +limit
+
+      let { prop, direction } = sortingProps
+
+      console.log({ prop, direction })
+
+      if (pizzaFeature) {
+        if (sortingProps && prop !== 'popular') {
+          if (prop === 'alphabet') {
+            prop = 'title'
+          }
+          if (prop === 'price') {
+            prop = 'sizes.medium.price'
+          }
+          const pizza = await Pizza.find(
+            { features: { $in: pizzaFeature } },
+            null,
+            { skip: (page - 1) * limit, limit: limit }
+          ).sort({ [prop]: direction ? 'asc' : 'desc' })
+          console.log(pizza)
+          return res.json(pizza)
+        }
+        const pizza = await Pizza.find(
+          { features: { $in: pizzaFeature } },
+          null,
+          { skip: (page - 1) * limit, limit: limit }
+        )
+        return res.json(pizza)
+      }
+      if (sortingProps && prop !== 'popular') {
+        if (prop === 'alphabet') {
+          prop = 'title'
+        }
+        if (prop === 'price') {
+          prop = 'sizes.medium.price'
+        }
+        const pizza = await Pizza.find({}, null, {
+          skip: (page - 1) * limit,
+          limit: limit,
+        }).sort({ [prop]: direction ? 'asc' : 'desc' })
+
+        return res.json(pizza)
+      }
+      const pizza = await Pizza.find({}, null, {
+        skip: (page - 1) * limit,
+        limit: limit,
+      })
+
+      return res.json(pizza)
+    } catch (e) {
+      return next(ApiError.badRequest(e.message))
+    }
+  }
 
   async change(req, res, next) {
     try {
