@@ -2,22 +2,11 @@ const uuid = require('uuid')
 const ApiError = require('../error/ApiError')
 const Pizza = require('../models/Pizza')
 const path = require('path')
+const fs = require('fs')
+const removeImage = require('../utils/removeImage')
+const saveImage = require('../utils/saveImage')
+const parseToJson = require('../utils/parseToJson')
 
-function parseToJson(data) {
-  if (data.selected) {
-    data.selected = JSON.parse(data.selected)
-  }
-  if (data.sizes) {
-    data.sizes = JSON.parse(data.sizes)
-  }
-  if (data.dough) {
-    data.dough = JSON.parse(data.dough)
-  }
-  if (data.features) {
-    data.features = JSON.parse(data.features)
-  }
-  return data
-}
 class PizzaController {
   async create(req, res, next) {
     try {
@@ -26,7 +15,8 @@ class PizzaController {
 
       const { image } = req.files
       let fileName = uuid.v4() + '.jpg'
-      image.mv(path.resolve(__dirname, '..', 'static', fileName))
+
+      saveImage(image, fileName)
 
       const pizza = await Pizza.create({
         ...data,
@@ -46,9 +36,12 @@ class PizzaController {
       page = +page
       limit = +limit
 
-      let { prop, direction } = sortingProps
+      let prop, direction
 
-      console.log({ prop, direction })
+      if (sortingProps) {
+        prop = sortingProps.prop
+        direction = sortingProps.direction
+      }
 
       if (pizzaFeature) {
         if (sortingProps && prop !== 'popular') {
@@ -107,18 +100,26 @@ class PizzaController {
     try {
       const { id } = req.query
       let { ...data } = req.body
-      console.log(data)
+
       data = parseToJson(data)
 
-      const { image } = req.files
+      if (req.files) {
+        const { image } = req.files
 
-      if (image) {
+        // удаление старой картинки
+        const pizza = await Pizza.findById(id)
+
+        removeImage(pizza)
+
         let fileName = uuid.v4() + '.jpg'
-        image.mv(path.resolve(__dirname, '..', 'static', fileName))
+
+        saveImage(image, fileName)
+
         const updated = await Pizza.findByIdAndUpdate(id, {
           ...data,
           image: fileName,
         })
+
         return res.json(updated)
       }
 
@@ -132,8 +133,10 @@ class PizzaController {
   async remove(req, res, next) {
     try {
       const { id } = req.query
-      console.log(id)
+
       const data = await Pizza.findByIdAndDelete(id)
+
+      removeImage(data)
 
       return res.json(data)
     } catch (e) {

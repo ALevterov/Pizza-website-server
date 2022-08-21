@@ -1,46 +1,117 @@
-const { validationResult } = require('express-validator')
-const User = require('../models/User')
-const bcrypt = require('bcrypt')
+const uuid = require('uuid')
 const ApiError = require('../error/ApiError')
+const Product = require('../models/Product')
+const path = require('path')
+const removeImage = require('../utils/removeImage')
+const saveImage = require('../utils/saveImage')
+const parseToJson = require('../utils/parseToJson')
 
-class AuthController {
-  async registration(req, res) {
+class ProductController {
+  async create(req, res, next) {
     try {
-      const errors = validationResult(req)
+      let { ...data } = req.body
+      data = parseToJson(data)
 
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ message: 'Incorrect request', errors })
-      }
+      const { image } = req.files
+      let fileName = uuid.v4() + '.jpg'
 
-      const { email, password } = req.body
+      saveImage(image, fileName)
 
-      const candidate = await User.findOne({ email })
+      const product = await Product.create({
+        ...data,
+        image: fileName,
+      })
 
-      if (candidate) {
-        return res
-          .status(400)
-          .json({ message: `User with email ${email} already exist` })
-      }
-
-      const hashPassword = await bcrypt.hash(password, 8)
-      const user = new User({ email, password: hashPassword })
-      await user.save()
-      return res.json({ message: 'User was created' })
+      return res.json(product)
     } catch (e) {
-      console.log(e)
-      res.send({ message: 'Server error' })
+      next(ApiError.badRequest(e.message))
+    }
+  }
+  async get(req, res, next) {
+    try {
+      let { page, limit, sortingProps, type } = req.body
+
+      page = +page
+      limit = +limit
+
+      let prop, direction
+
+      if (sortingProps) {
+        prop = sortingProps.prop
+        direction = sortingProps.direction
+      }
+
+      if (sortingProps && prop !== 'popular') {
+        if (prop === 'alphabet') {
+          prop = 'title'
+        }
+
+        const product = await Product.find({ type: type }, null, {
+          skip: (page - 1) * limit,
+          limit: limit,
+          sort: { [prop]: direction ? 'asc' : 'desc' },
+        })
+
+        return res.json(product)
+      }
+      const product = await Product.find({ type: type }, null, {
+        skip: (page - 1) * limit,
+        limit: limit,
+      })
+
+      return res.json(product)
+    } catch (e) {
+      return next(ApiError.badRequest(e.message))
     }
   }
 
-  async login(req, res) {}
+  async change(req, res, next) {
+    try {
+      const { id } = req.query
+      let { ...data } = req.body
 
-  async checkUser(req, res, next) {
-    const { id } = req.query
-    if (!id) {
-      return next(ApiError.basRequest('Не задан ID'))
+      data = parseToJson(data)
+
+      if (req.files) {
+        const { image } = req.files
+
+        // удаление старой картинки
+        const product = await Product.findById(id)
+
+        removeImage(product)
+
+        let fileName = uuid.v4() + '.jpg'
+
+        saveImage(image, fileName)
+
+        const updated = await Product.findByIdAndUpdate(id, {
+          ...data,
+          image: fileName,
+        })
+
+        return res.json(updated)
+      }
+
+      const updated = await Product.findByIdAndUpdate(id, { ...data })
+
+      return res.json(updated)
+    } catch (e) {
+      return next(ApiError.badRequest(e.message))
     }
-    res.json(id)
+  }
+  async remove(req, res, next) {
+    try {
+      const { id } = req.query
+
+      const data = await Product.findByIdAndDelete(id)
+
+      removeImage(data)
+
+      return res.json(data)
+    } catch (e) {
+      return next(ApiError.badRequest(e.message))
+    }
   }
 }
 
-module.exports = new AuthController()
+module.exports = new ProductController()
