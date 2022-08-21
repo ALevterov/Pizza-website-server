@@ -1,4 +1,5 @@
 const Router = require('express')
+const checkRoleMiddleware = require('../middleware/checkRoleMiddleware')
 const {
   change,
   get,
@@ -8,8 +9,8 @@ const {
 const router = new Router()
 
 router.get('/', get)
-router.post('/', create)
-router.put('/', change)
-router.delete('/', remove)
+router.post('/', checkRoleMiddleware('ADMIN'), create)
+router.put('/', checkRoleMiddleware('ADMIN'), change)
+router.delete('/', checkRoleMiddleware('ADMIN'), remove)
 
 module.exports = router

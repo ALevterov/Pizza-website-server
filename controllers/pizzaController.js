@@ -1,8 +1,6 @@
 const uuid = require('uuid')
 const ApiError = require('../error/ApiError')
 const Pizza = require('../models/Pizza')
-const path = require('path')
-const fs = require('fs')
 const removeImage = require('../utils/removeImage')
 const saveImage = require('../utils/saveImage')
 const parseToJson = require('../utils/parseToJson')
@@ -60,7 +58,6 @@ class PizzaController {
               sort: { [prop]: direction ? 'asc' : 'desc' },
             }
           )
-          console.log(pizza)
           return res.json(pizza)
         }
         const pizza = await Pizza.find(

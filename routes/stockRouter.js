@@ -5,7 +5,7 @@ const {
   get,
   create,
   remove,
-} = require('../controllers/productController')
+} = require('../controllers/stockConteroller')
 const router = new Router()
 
 router.get('/', get)

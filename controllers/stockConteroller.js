@@ -1,64 +1,37 @@
 const uuid = require('uuid')
 const ApiError = require('../error/ApiError')
-const Product = require('../models/Product')
+const Stock = require('../models/Stock')
+const path = require('path')
+const fs = require('fs')
 const removeImage = require('../utils/removeImage')
 const saveImage = require('../utils/saveImage')
 const parseToJson = require('../utils/parseToJson')
 
-class ProductController {
+class StockController {
   async create(req, res, next) {
     try {
       let { ...data } = req.body
-      data = parseToJson(data)
 
       const { image } = req.files
       let fileName = uuid.v4() + '.jpg'
 
       saveImage(image, fileName)
 
-      const product = await Product.create({
+      const stock = await Stock.create({
         ...data,
         image: fileName,
       })
 
-      return res.json(product)
+      return res.json(stock)
     } catch (e) {
       next(ApiError.badRequest(e.message))
     }
   }
+
   async get(req, res, next) {
     try {
-      let { page, limit, sortingProps, type } = req.body
-
-      page = +page
-      limit = +limit
-
-      let prop, direction
-
-      if (sortingProps) {
-        prop = sortingProps.prop
-        direction = sortingProps.direction
-      }
-
-      if (sortingProps && prop !== 'popular') {
-        if (prop === 'alphabet') {
-          prop = 'title'
-        }
-
-        const product = await Product.find({ type: type }, null, {
-          skip: (page - 1) * limit,
-          limit: limit,
-          sort: { [prop]: direction ? 'asc' : 'desc' },
-        })
-
-        return res.json(product)
-      }
-      const product = await Product.find({ type: type }, null, {
-        skip: (page - 1) * limit,
-        limit: limit,
-      })
-
-      return res.json(product)
+      const stocks = Stock.find({})
+      res.json(stocks)
     } catch (e) {
       return next(ApiError.badRequest(e.message))
     }
@@ -69,21 +42,19 @@ class ProductController {
       const { id } = req.query
       let { ...data } = req.body
 
-      data = parseToJson(data)
-
       if (req.files) {
         const { image } = req.files
 
         // удаление старой картинки
-        const product = await Product.findById(id)
+        const stock = await Stock.findById(id)
 
-        removeImage(product)
+        removeImage(stock)
 
         let fileName = uuid.v4() + '.jpg'
 
         saveImage(image, fileName)
 
-        const updated = await Product.findByIdAndUpdate(id, {
+        const updated = await Stock.findByIdAndUpdate(id, {
           ...data,
           image: fileName,
         })
@@ -91,7 +62,7 @@ class ProductController {
         return res.json(updated)
       }
 
-      const updated = await Product.findByIdAndUpdate(id, { ...data })
+      const updated = await Pizza.findByIdAndUpdate(id, { ...data })
 
       return res.json(updated)
     } catch (e) {
@@ -102,7 +73,7 @@ class ProductController {
     try {
       const { id } = req.query
 
-      const data = await Product.findByIdAndDelete(id)
+      const data = await Stock.findByIdAndDelete(id)
 
       removeImage(data)
 
@@ -113,4 +84,4 @@ class ProductController {
   }
 }
 
-module.exports = new ProductController()
+module.exports = new StockController()
