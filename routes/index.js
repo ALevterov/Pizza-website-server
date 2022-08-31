@@ -4,7 +4,7 @@ const pizzaRouter = require('./pizzaRouter')
 const dessertRouter = require('./dessertRouter')
 const drinkRouter = require('./drinkRouter')
 const stockRouter = require('./stockRouter')
-const IntroCardRouter = require('./IntroCardRouter')
+const IntroCardRouter = require('./introCardRouter')
 const router = new Router()
 
 router.use('/auth', authRouter)
