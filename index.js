@@ -5,7 +5,7 @@ const router = require('./routes/index')
 const cors = require('cors')
 const fileUpload = require('express-fileupload')
 const errorHandler = require('./middleware/errorHandlingMiddleware')
-const PORT = config.get('serverPort') || 4000
+const PORT = process.env.PORT || config.get('serverPort') || 4000
 const path = require('path')
 
 const app = express()
