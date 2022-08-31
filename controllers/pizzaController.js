@@ -4,13 +4,11 @@ const Pizza = require('../models/Pizza')
 const removeImage = require('../utils/removeImage')
 const saveImage = require('../utils/saveImage')
 const parseToJson = require('../utils/parseToJson')
-
 class PizzaController {
   async create(req, res, next) {
     try {
-      let { ...data } = req.body
+      let data = req.body
       data = parseToJson(data)
-
       const { image } = req.files
       let fileName = uuid.v4() + '.jpg'
 
@@ -29,19 +27,23 @@ class PizzaController {
 
   async get(req, res, next) {
     try {
-      let { page, limit, pizzaFeature, sortingProps } = req.body
+      let { page, limit, pizzaFeature, sortingProps } = req.query
+
+      sortingProps = JSON.parse(sortingProps)
+      pizzaFeature = JSON.parse(pizzaFeature)
 
       page = +page
       limit = +limit
 
       let prop, direction
-
-      if (sortingProps) {
+      if (sortingProps && sortingProps.length !== 0 && sortingProps.prop) {
         prop = sortingProps.prop
         direction = sortingProps.direction
+      } else {
+        sortingProps = null
       }
 
-      if (pizzaFeature) {
+      if (pizzaFeature && pizzaFeature.length !== 0) {
         if (sortingProps && prop !== 'popular') {
           if (prop === 'alphabet') {
             prop = 'title'
@@ -49,6 +51,9 @@ class PizzaController {
           if (prop === 'price') {
             prop = 'sizes.medium.price'
           }
+          const count = await Pizza.find({
+            features: { $in: pizzaFeature },
+          }).count()
           const pizza = await Pizza.find(
             { features: { $in: pizzaFeature } },
             null,
@@ -58,14 +63,18 @@ class PizzaController {
               sort: { [prop]: direction ? 'asc' : 'desc' },
             }
           )
-          return res.json(pizza)
+          return res.json({ chunk: pizza, count })
         }
+        const count = await Pizza.find({
+          features: { $in: pizzaFeature },
+        }).count()
         const pizza = await Pizza.find(
           { features: { $in: pizzaFeature } },
           null,
           { skip: (page - 1) * limit, limit: limit }
         )
-        return res.json(pizza)
+        // pizza = formatImages(pizza)
+        return res.json({ chunk: pizza, count })
       }
       if (sortingProps && prop !== 'popular') {
         if (prop === 'alphabet') {
@@ -74,20 +83,23 @@ class PizzaController {
         if (prop === 'price') {
           prop = 'sizes.medium.price'
         }
+        const count = await Pizza.find({}).count()
+
         const pizza = await Pizza.find({}, null, {
           skip: (page - 1) * limit,
           limit: limit,
           sort: { [prop]: direction ? 'asc' : 'desc' },
         })
 
-        return res.json(pizza)
+        return res.json({ chunk: pizza, count })
       }
-      const pizza = await Pizza.find({}, null, {
+      const count = await Pizza.find({}).count()
+      let pizza = await Pizza.find({}, null, {
         skip: (page - 1) * limit,
         limit: limit,
       })
 
-      return res.json(pizza)
+      return res.json({ chunk: pizza, count })
     } catch (e) {
       return next(ApiError.badRequest(e.message))
     }
@@ -95,11 +107,9 @@ class PizzaController {
 
   async change(req, res, next) {
     try {
-      const { id } = req.query
-      let { ...data } = req.body
-
+      let data = req.body
+      let { _id: id } = req.body
       data = parseToJson(data)
-
       if (req.files) {
         const { image } = req.files
 
@@ -119,6 +129,7 @@ class PizzaController {
 
         return res.json(updated)
       }
+      if (data.image === 'null') delete data.image
 
       const updated = await Pizza.findByIdAndUpdate(id, { ...data })
 
@@ -129,7 +140,7 @@ class PizzaController {
   }
   async remove(req, res, next) {
     try {
-      const { id } = req.query
+      const { id } = req.body
 
       const data = await Pizza.findByIdAndDelete(id)
 

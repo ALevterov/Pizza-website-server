@@ -1,10 +1,10 @@
 const uuid = require('uuid')
 const ApiError = require('../error/ApiError')
-const Stock = require('../models/Stock')
+const IntroCard = require('../models/IntroCard')
 const removeImage = require('../utils/removeImage')
 const saveImage = require('../utils/saveImage')
 
-class StockController {
+class IntroCardController {
   async create(req, res, next) {
     try {
       let { ...data } = req.body
@@ -14,12 +14,12 @@ class StockController {
 
       saveImage(image, fileName)
 
-      const stock = await Stock.create({
+      const card = await IntroCard.create({
         ...data,
         image: fileName,
       })
 
-      return res.json(stock)
+      return res.json(card)
     } catch (e) {
       next(ApiError.badRequest(e.message))
     }
@@ -27,8 +27,8 @@ class StockController {
 
   async get(req, res, next) {
     try {
-      const stocks = await Stock.find({})
-      res.json(stocks)
+      const cards = await IntroCard.find({})
+      res.json(cards)
     } catch (e) {
       return next(ApiError.badRequest(e.message))
     }
@@ -43,15 +43,15 @@ class StockController {
         const { image } = req.files
 
         // удаление старой картинки
-        const stock = await Stock.findById(id)
+        const card = await IntroCard.findById(id)
 
-        removeImage(stock)
+        removeImage(card)
 
         let fileName = uuid.v4() + '.jpg'
 
         saveImage(image, fileName)
 
-        const updated = await Stock.findByIdAndUpdate(id, {
+        const updated = await IntroCard.findByIdAndUpdate(id, {
           ...data,
           image: fileName,
         })
@@ -59,7 +59,7 @@ class StockController {
         return res.json(updated)
       }
 
-      const updated = await Pizza.findByIdAndUpdate(id, { ...data })
+      const updated = await IntroCard.findByIdAndUpdate(id, { ...data })
 
       return res.json(updated)
     } catch (e) {
@@ -70,7 +70,7 @@ class StockController {
     try {
       const { id } = req.query
 
-      const data = await Stock.findByIdAndDelete(id)
+      const data = await IntroCard.findByIdAndDelete(id)
 
       removeImage(data)
 
@@ -81,4 +81,4 @@ class StockController {
   }
 }
 
-module.exports = new StockController()
+module.exports = new IntroCardController()

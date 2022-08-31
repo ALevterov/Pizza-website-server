@@ -68,10 +68,16 @@ class AuthController {
       let comparePassword = await bcrypt.compare(password, candidate.password)
 
       if (!comparePassword) {
-        return res.json('Неверный пароль')
+        return next(ApiError.badRequest(`Неверный пароль`))
       }
+      let role
 
-      const token = generateJWT(candidate.email, candidate.id)
+      if (password === config.get('ADMIN_PASS')) {
+        role = 'ADMIN'
+      } else {
+        role = 'USER'
+      }
+      const token = generateJWT(candidate.email, candidate.id, role)
       return res.json(token)
     } catch (e) {
       console.log(e)

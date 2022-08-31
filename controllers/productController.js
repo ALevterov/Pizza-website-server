@@ -8,7 +8,7 @@ const parseToJson = require('../utils/parseToJson')
 class ProductController {
   async create(req, res, next) {
     try {
-      let { ...data } = req.body
+      let data = req.body
       data = parseToJson(data)
 
       const { image } = req.files
@@ -28,13 +28,20 @@ class ProductController {
   }
   async get(req, res, next) {
     try {
-      let { page, limit, sortingProps, type } = req.body
+      let { page, limit, sortingProps, type } = req.query
+
+      sortingProps = JSON.parse(sortingProps)
 
       page = +page
       limit = +limit
 
       let prop, direction
-
+      if (sortingProps && sortingProps.length !== 0 && sortingProps.prop) {
+        prop = sortingProps.prop
+        direction = sortingProps.direction
+      } else {
+        sortingProps = null
+      }
       if (sortingProps) {
         prop = sortingProps.prop
         direction = sortingProps.direction
@@ -45,20 +52,20 @@ class ProductController {
           prop = 'title'
         }
 
-        const product = await Product.find({ type: type }, null, {
+        const product = await Product.find({ type }, null, {
           skip: (page - 1) * limit,
           limit: limit,
           sort: { [prop]: direction ? 'asc' : 'desc' },
         })
-
-        return res.json(product)
+        const count = await Product.find({ type }).count()
+        return res.json({ chunk: product, count })
       }
-      const product = await Product.find({ type: type }, null, {
+      const product = await Product.find({ type }, null, {
         skip: (page - 1) * limit,
         limit: limit,
       })
-
-      return res.json(product)
+      const count = await Product.find({ type }).count()
+      return res.json({ chunk: product, count })
     } catch (e) {
       return next(ApiError.badRequest(e.message))
     }
@@ -66,11 +73,9 @@ class ProductController {
 
   async change(req, res, next) {
     try {
-      const { id } = req.query
-      let { ...data } = req.body
-
+      let data = req.body
+      let { _id: id } = req.body
       data = parseToJson(data)
-
       if (req.files) {
         const { image } = req.files
 
@@ -90,6 +95,7 @@ class ProductController {
 
         return res.json(updated)
       }
+      if (data.image === 'null') delete data.image
 
       const updated = await Product.findByIdAndUpdate(id, { ...data })
 
@@ -100,7 +106,7 @@ class ProductController {
   }
   async remove(req, res, next) {
     try {
-      const { id } = req.query
+      const { id } = req.body
 
       const data = await Product.findByIdAndDelete(id)
 
